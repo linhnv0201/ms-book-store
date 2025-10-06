@@ -1,0 +1,27 @@
+spring:
+    application:
+        name: auth-service
+    datasource:
+        url: jdbc:mysql://localhost:3308/bookstore1
+        username: root
+        password: root
+    jpa:
+        hibernate:
+            ddl-auto: update
+        show-sql: true
+server:
+    port: 8081
+
+jwt:
+    signerKey: "+sKONebNUcmUmf+npmjczX4luDnOk4troBnQMmhVxqp64MSKvk5XrVe2Ijr1X+qS"
+    valid-duration: 3600        
+    refreshable-duration: 36000 # in seconds
+
+eureka:
+    client:
+        service-url:
+            defaultZone: http://localhost:8761/eureka/
+        fetch-registry: true
+        register-with-eureka: true
+    instance:
+        ip-address: true
