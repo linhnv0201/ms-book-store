@@ -26,7 +26,6 @@ import java.util.Set;
 
 import static user_service.user.UserSpecification.*;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -35,6 +35,11 @@ spring:
           uri: lb://payment-service
           predicates:
             - Path=/payments/**
+#        # Internal API
+#        - id: internal-user-route
+#          uri: lb://auth-service
+#          predicates:
+#            - Path=/internal/users/**
 
 eureka:
   client:

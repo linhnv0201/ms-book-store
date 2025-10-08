@@ -132,52 +132,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
     }
 
-//    @Override
-//    public AuthenticationResponse authenticate(
-//            AuthenticationRequest request,
-//            HttpServletResponse response) {
-//        User user = userRepository.findByEmail(request.getEmail())
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-//
-//
-//        //BCrypt khi mã hóa mật khẩu sẽ thực hiện nhiều vòng (rounds) hashing.
-//        //Số vòng = 2^strength.
-//        //Với strength = 10 → BCrypt chạy 2^10 = 1024 vòng tính toán để tạo ra hash.
-//        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-//        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-//
-//        if (!authenticated) throw new AppException(ErrorCode.WRONG_PASSWORD);
-//
-//        String accessToken;
-//        String refreshToken;
-//        try {
-//            accessToken = generateToken(user, VALID_DURATION, "ACCESS");
-//            refreshToken = generateToken(user, REFRESHABLE_DURATION, "REFRESH");
-//        } catch (JOSEException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//        // --- Set access token cookie ---
-//        jakarta.servlet.http.Cookie accessCookie = new jakarta.servlet.http.Cookie("accessToken", accessToken);
-//        accessCookie.setHttpOnly(true);  // JS không đọc được
-//        accessCookie.setPath("/");        // áp dụng toàn bộ domain
-//        accessCookie.setMaxAge(VALID_DURATION.intValue()); // thời gian sống token (giây)
-//        response.addCookie(accessCookie);
-//
-//        // --- Set refresh token cookie ---
-//        jakarta.servlet.http.Cookie refreshCookie = new jakarta.servlet.http.Cookie("refreshToken", refreshToken);
-//        refreshCookie.setHttpOnly(true);      // JS không đọc được
-//        refreshCookie.setPath("/auth/refresh"); // chỉ gửi khi gọi endpoint refresh
-//        refreshCookie.setMaxAge(REFRESHABLE_DURATION.intValue()); // thời gian sống refresh token
-//        response.addCookie(refreshCookie);
-//
-//        return AuthenticationResponse.builder()
-//                .accessToken(accessToken)
-//                .refreshToken(refreshToken)
-//                .authenticated(true)
-//                .build();
-//    }
-
     @Override
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
         try {
