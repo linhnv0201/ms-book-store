@@ -1,5 +1,6 @@
 package product_service.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,11 +22,13 @@ import product_service.repo.CategoryRepository;
 import product_service.repo.ProductJDBCRepository;
 import product_service.repo.ProductRepository;
 import product_service.service.ProductService;
+import product_service.service.RedisCacheService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static product_service.specification.ProductSpecification.*;
 
@@ -38,7 +41,50 @@ public class ProductServiceImpl implements ProductService {
     ProductJDBCRepository productJDBCRepository;
     ProductMapper productMapper;
     CategoryRepository categoryRepository;
-//    NamedParameterJdbcTemplate jdbcTemplate;
+    RedisCacheService redisCacheService;
+    ObjectMapper objectMapper; // Jackson ObjectMapper
+
+    @Override
+    public ProductResponse getProduct(Long id) {
+        String key = "product_" + id;
+
+        // 1. Lấy từ cache
+        Object cached = redisCacheService.getValue(key);
+        if (cached != null) {
+            // Redis lưu JSON -> convert về DTO
+            ProductResponse response = objectMapper.convertValue(cached, ProductResponse.class);
+            System.out.println("Cache hit for product " + id);
+            return response;
+        }
+
+        System.out.println("Cache miss. Querying DB for product " + id);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // 2. Nếu cache trống -> lấy từ DB
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        ProductResponse response = filterProductForNonAdmin(productMapper.toProductResponse(product));
+
+        // 3. Lưu vào cache với TTL 1 phút
+        redisCacheService.setValueWithTimeout(key, response, 600, TimeUnit.SECONDS);
+
+        return response;
+    }
+
+
+//    @Override
+//    public ProductResponse getProduct(Long id) {
+//        Product product = productRepository.findById(id).orElseThrow(
+//                () -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+//        return filterProductForNonAdmin(productMapper.toProductResponse(product));
+//    }
+
 
     @Override
     public ProductResponse createProduct(ProductCreationRequest request) {
@@ -79,13 +125,6 @@ public class ProductServiceImpl implements ProductService {
         product = productRepository.save(product);
 
         return productMapper.toProductResponse(product);
-    }
-
-    @Override
-    public ProductResponse getProduct(Long id) {
-        Product product = productRepository.findById(id).orElseThrow(
-                () -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-        return filterProductForNonAdmin(productMapper.toProductResponse(product));
     }
 
     @Override
