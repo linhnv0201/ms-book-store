@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
 import product_service.dto.response.ProductResponse;
+import product_service.dto.response.ProductSummaryResponse;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -14,7 +16,9 @@ public interface ProductService {
     ProductResponse createProduct(ProductCreationRequest request);
     ProductResponse updateProduct(Long id, ProductUpdateRequest request);
     ProductResponse getProduct(Long id);
-//    List<ProductResponse> getAllProducts();
+    List<Long> getRelatedProductIdsByProductId(Long id);
+    ProductSummaryResponse getProductProjection(Long id);
+    List<ProductSummaryResponse> getRelatedProductSummaryByProductId(Long id);
     Page<ProductResponse> getAllProducts(Pageable pageable);
     List<ProductResponse> getAllProductsByCategory(Long categoryId);
     void deleteProduct(Long id);

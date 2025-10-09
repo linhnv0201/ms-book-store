@@ -2,97 +2,68 @@ package product_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.data.redis.core.ListOperations;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class RedisCacheService {
-
-    private final RedisTemplate<String, Object> redisTemplate;
-    private final ValueOperations<String, Object> valueOps;
-    private final ListOperations<String, Object> listOps;
-
     @Autowired
-    public RedisCacheService(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-        this.valueOps = redisTemplate.opsForValue();
-        this.listOps = redisTemplate.opsForList();
-    }
-
-    // ---------------- Value Operations ----------------
+    private RedisTemplate redisTemplate;
 
     public Object getValue(String key) {
-        try {
-            return valueOps.get(key);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        return redisTemplate.opsForValue().get(key);
     }
 
     public void setValue(String key, Object value) {
         try {
-            valueOps.set(key, value);
+            redisTemplate.opsForValue().set(key, value);
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+    public void setTimout(String key, long timeout, TimeUnit timeUnit) {
+        redisTemplate.expire(key,timeout, timeUnit);
     }
 
-    public void setValueWithTimeout(String key, Object value, long ttl, TimeUnit unit) {
+    public void setValueWithTimeout(String key, Object value, long ttl, TimeUnit timeUnit) {
         try {
-            valueOps.set(key, value, ttl, unit);
+            redisTemplate.opsForValue().set(key, value);
+            redisTemplate.expire(key,ttl, timeUnit);
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
-    public boolean checkExistsKey(String key) {
+    public boolean checkExistsKey(String key){
+        boolean check = false;
         try {
-            return Boolean.TRUE.equals(redisTemplate.hasKey(key));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            check = redisTemplate.hasKey(key);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
+        return check;
     }
-
-    public void expireKey(String key, long ttl, TimeUnit unit) {
-        try {
-            redisTemplate.expire(key, ttl, unit);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // ---------------- List Operations ----------------
-
-    public void lPushAll(String key, List<?> values) {
-        try {
-            listOps.leftPushAll(key, values.toArray());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void lPushAll(String key, List<String> value) {
+        redisTemplate.opsForList().leftPushAll(key, value);
     }
 
     public Object rPop(String key) {
+        return redisTemplate.opsForList().rightPop(key);
+    }
+
+    public List<Object> getList(String key) {
         try {
-            return listOps.rightPop(key);
+            // Lấy tất cả phần tử từ Redis list từ index 0 đến -1
+            return redisTemplate.opsForList().range(key, 0, -1);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return Collections.emptyList();
         }
     }
 
-    public long getListSize(String key) {
-        try {
-            Long size = listOps.size(key);
-            return size != null ? size : 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
-    }
 }

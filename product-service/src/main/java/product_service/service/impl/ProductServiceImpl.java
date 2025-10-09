@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
+import product_service.dto.response.CategoryResponse;
 import product_service.dto.response.ProductResponse;
+import product_service.dto.response.ProductSummaryResponse;
 import product_service.entity.Category;
 import product_service.entity.Product;
 import product_service.exception.AppException;
@@ -29,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static product_service.specification.ProductSpecification.*;
 
@@ -42,11 +45,11 @@ public class ProductServiceImpl implements ProductService {
     ProductMapper productMapper;
     CategoryRepository categoryRepository;
     RedisCacheService redisCacheService;
-    ObjectMapper objectMapper; // Jackson ObjectMapper
+    ObjectMapper objectMapper;
 
     @Override
     public ProductResponse getProduct(Long id) {
-        String key = "product_" + id;
+        String key = "product:" + id;
 
         // 1. Lấy từ cache
         Object cached = redisCacheService.getValue(key);
@@ -58,32 +61,88 @@ public class ProductServiceImpl implements ProductService {
         }
 
         System.out.println("Cache miss. Querying DB for product " + id);
+//        try {
+//            Thread.sleep(3000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        // 2. Nếu cache trống -> lấy từ DB
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-
         ProductResponse response = filterProductForNonAdmin(productMapper.toProductResponse(product));
-
-        // 3. Lưu vào cache với TTL 1 phút
         redisCacheService.setValueWithTimeout(key, response, 600, TimeUnit.SECONDS);
 
         return response;
     }
 
+    @Override
+    public List<ProductSummaryResponse> getRelatedProductSummaryByProductId(Long id) {
+        List<Long> relatedIds = getRelatedProductIdsByProductId(id);
+        List<ProductSummaryResponse> relatedProducts = new ArrayList<>();
 
-//    @Override
-//    public ProductResponse getProduct(Long id) {
-//        Product product = productRepository.findById(id).orElseThrow(
-//                () -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-//        return filterProductForNonAdmin(productMapper.toProductResponse(product));
-//    }
+        for (Long relatedId : relatedIds) {
+            String summaryKey = "product_summary:" + relatedId;
+
+            ProductSummaryResponse cachedSummary =
+                    (ProductSummaryResponse) redisCacheService.getValue(summaryKey);
+
+            if (cachedSummary != null) {
+                relatedProducts.add(cachedSummary);
+                continue;
+            }
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            ProductSummaryResponse summary = productRepository.getProductSummaryById(relatedId);
+            if (summary != null) {
+                relatedProducts.add(summary);
+                redisCacheService.setValueWithTimeout(summaryKey, summary, 600, TimeUnit.SECONDS);
+            }
+        }
+        return relatedProducts;
+    }
+
+    @Override
+    public List<Long> getRelatedProductIdsByProductId(Long id) {
+        String cacheKey = "related_product:" + id;
+
+        // ---------------- Lấy từ Redis ----------------
+        List<Object> cachedList = redisCacheService.getList(cacheKey);
+        if (cachedList != null && !cachedList.isEmpty()) {
+            return cachedList.stream()
+                    .filter(Objects::nonNull)
+                    .map(o -> Long.parseLong(o.toString()))  // parse String sang Long
+                    .toList();
+        }
+
+        // ---------------- Nếu không có trong cache -> load từ DB ----------------
+        // Lấy trực tiếp category IDs từ DB, tránh lazy-loading
+        List<Long> categoryIds = productRepository.findCategoryIdsByProductId(id);
+        if (categoryIds.isEmpty()) {
+            throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+
+        List<Long> relatedProducts = productRepository.findRandomByCategoryListGetIdOnly(categoryIds, id);
+
+        // ---------------- Push vào Redis list ----------------
+        List<String> strList = relatedProducts.stream()
+                .map(String::valueOf)
+                .toList();
+
+        redisCacheService.lPushAll(cacheKey, strList);
+        redisCacheService.setTimout(cacheKey, 600, TimeUnit.SECONDS);
+
+        return relatedProducts;
+    }
+
+
+    @Override
+    public ProductSummaryResponse getProductProjection(Long id) {
+        return productRepository.getProductSummaryById(id);
+    }
 
 
     @Override
@@ -123,17 +182,17 @@ public class ProductServiceImpl implements ProductService {
         productMapper.toUpdateProduct(product, request);
 
         product = productRepository.save(product);
+        ProductResponse productResponse = productMapper.toProductResponse(product);
 
-        return productMapper.toProductResponse(product);
+        // Cập nhật cache ngay
+        String key = "product:" + id;
+        redisCacheService.setValueWithTimeout(key, productResponse, 600, TimeUnit.SECONDS);
+
+        return productResponse;
     }
 
+
     @Override
-//    public List<ProductResponse> getAllProducts() {
-//        return productRepository.findAll().stream()
-//                .map(productMapper::toProductResponse)
-//                .map(this::filterProductForNonAdmin)
-//                .toList();
-//    }
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable)
                 .map(productMapper::toProductResponse)

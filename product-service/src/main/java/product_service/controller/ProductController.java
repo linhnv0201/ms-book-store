@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,11 +12,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 //import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import product_service.config.RedisConfig;
 import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
 import product_service.dto.response.ApiResponse;
 import product_service.dto.response.ProductResponse;
+import product_service.dto.response.ProductSummaryResponse;
+import product_service.process.TaskManager;
 import product_service.service.ProductService;
+import product_service.service.RedisCacheService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,6 +34,7 @@ import java.util.Map;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProductController {
     ProductService productService;
+    TaskManager taskManager;
 
     @PostMapping
 //    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
@@ -81,14 +87,24 @@ public class ProductController {
         return apiResponse;
     }
 
-
     @GetMapping("/{id}")
     public ApiResponse<ProductResponse> getProduct(@PathVariable Long id) {
         ApiResponse<ProductResponse> apiResponse = new ApiResponse<>();
+        taskManager.execute(productService, id);
+//        productService.getRelatedProductSummaryByProductId(id);
         apiResponse.setMessage("Successfully retrieved product");
         apiResponse.setResult(productService.getProduct(id));
         return apiResponse;
     }
+
+    @GetMapping("/{id}/relatedProduct")
+    public ApiResponse<List<ProductSummaryResponse>> getRelatedProductsSummary(@PathVariable Long id) {
+        ApiResponse<List<ProductSummaryResponse>> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("Successfully retrieved product");
+        apiResponse.setResult(productService.getRelatedProductSummaryByProductId(id));
+        return apiResponse;
+    }
+
 
     @GetMapping("/jdbc/{id}")
     public ApiResponse<Map<String, Object>> getProductNamedJDBC(@PathVariable Long id) {
