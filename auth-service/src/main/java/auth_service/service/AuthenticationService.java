@@ -20,5 +20,5 @@ public interface AuthenticationService {
 
     void logout(LogoutRequest request) throws ParseException, JOSEException;
 
-//    RequireRefreshTokenResponse refreshToken(RefreshRequest request, HttpServletRequest httpRequest) throws ParseException, JOSEException;
+    RequireRefreshTokenResponse refreshToken(RefreshRequest request, HttpServletRequest httpRequest) throws ParseException, JOSEException;
 }

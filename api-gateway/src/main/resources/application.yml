@@ -13,16 +13,15 @@ spring:
             locator:
               enabled: true
               lower-case-service-id: true
-      # Define explicit routes if needed:
       routes:
+        - id: auth-route
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**       # public route
         - id: user-route
           uri: lb://user-service
           predicates:
             - Path=/users/**
-        - id: auth-route
-          uri: lb://auth-service
-          predicates:
-            - Path=/auth/**
         - id: order-route
           uri: lb://order-service
           predicates:
@@ -35,11 +34,6 @@ spring:
           uri: lb://payment-service
           predicates:
             - Path=/payments/**
-#        # Internal API
-#        - id: internal-user-route
-#          uri: lb://auth-service
-#          predicates:
-#            - Path=/internal/users/**
 
 eureka:
   client:

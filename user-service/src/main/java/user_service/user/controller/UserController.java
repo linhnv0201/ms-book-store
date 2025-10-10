@@ -7,8 +7,10 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import user_service.user.dto.*;
 import user_service.user.service.UserService;
 
@@ -22,6 +24,7 @@ import java.util.List;
 public class UserController {
     UserService userService;
 
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/helloUser")
     public String helloUser() {
         return "hello from UserService";
@@ -50,11 +53,6 @@ public class UserController {
     @GetMapping
 //    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     ApiResponse<List<UserResponse>> getUsers() {
-//        var authentication = SecurityContextHolder.getContext().getAuthentication();
-//
-//        log.info("Email: {}", authentication.getName());
-//        authentication.getAuthorities().forEach(grantedAuthority -> log.info(grantedAuthority.getAuthority()));
-
         return ApiResponse.<List<UserResponse>>builder()
                 .result(userService.getUsers())
                 .build();
@@ -92,14 +90,24 @@ public class UserController {
     }
 
 
-    // Get user by id
+    //    // Get user by id
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public ApiResponse<UserResponse> getUser(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<UserResponse>    getUser(@PathVariable Long id,
+                                             @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        System.out.println("Authorization header: " + authHeader); // <-- check token
         ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
         apiResponse.setResult(userService.getUser(id));
         return apiResponse;
     }
+
+//    @GetMapping("/{id}")
+//    public ApiResponse<UserResponse> getUser (@PathVariable Long id) {
+//        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+//        apiResponse.setResult(userService.getUser(id));
+//        return apiResponse;
+//    }
+
 
     // Delete user
     @DeleteMapping("/{id}")

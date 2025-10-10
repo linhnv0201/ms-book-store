@@ -146,39 +146,44 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
-//    @Override
-//    public RequireRefreshTokenResponse refreshToken(RefreshRequest request, HttpServletRequest httpRequest) throws ParseException, JOSEException {
-//        String refreshToken = request.getToken();
-//        if (refreshToken == null || refreshToken.isEmpty()) {
-//            throw new AppException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
-//        }
-//
-//        // 2. Verify refresh token
-//        SignedJWT refreshJWT = verifyToken(refreshToken);
-//        String username = refreshJWT.getJWTClaimsSet().getSubject();
+    @Override
+    public RequireRefreshTokenResponse refreshToken(RefreshRequest request, HttpServletRequest httpRequest) throws ParseException, JOSEException {
+        String refreshToken = request.getToken();
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new AppException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        }
+
+        // 2. Verify refresh token
+        SignedJWT refreshJWT = verifyToken(refreshToken);
+        String email = refreshJWT.getJWTClaimsSet().getSubject();
 //        User user = userRepository.findByEmail(username)
 //                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-//
-//        // 3. Invalidate old access token (lấy từ header Authorization)
-//        String oldAccessToken = getAccessTokenFromRequest(httpRequest);
-//        System.out.println(oldAccessToken);
-//        if (oldAccessToken != null) {
-//            SignedJWT oldAccessJWT = SignedJWT.parse(oldAccessToken);
-//            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-//                    .id(oldAccessJWT.getJWTClaimsSet().getJWTID())
-//                    .expireTime(oldAccessJWT.getJWTClaimsSet().getExpirationTime())
-//                    .build();
-//            invalidatedTokenRepository.save(invalidatedToken);
-//        }
-//
-//        // 4. Tạo access token mới
-//        String newAccessToken = generateToken(user, VALID_DURATION, "ACCESS");
-//
-//        return RequireRefreshTokenResponse.builder()
-//                .accessToken(newAccessToken)
-//                .authenticated(true)
-//                .build();
-//    }
+        ApiResponse<UserResponse> userResponse = userClient.getUserByEmail(email);
+        UserResponse user = userResponse.getResult();
+        if (user == null) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 3. Invalidate old access token (lấy từ header Authorization)
+        String oldAccessToken = getAccessTokenFromRequest(httpRequest);
+        System.out.println(oldAccessToken);
+        if (oldAccessToken != null) {
+            SignedJWT oldAccessJWT = SignedJWT.parse(oldAccessToken);
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .id(oldAccessJWT.getJWTClaimsSet().getJWTID())
+                    .expireTime(oldAccessJWT.getJWTClaimsSet().getExpirationTime())
+                    .build();
+            invalidatedTokenRepository.save(invalidatedToken);
+        }
+
+        // 4. Tạo access token mới
+        String newAccessToken = generateToken(user, VALID_DURATION, "ACCESS");
+
+        return RequireRefreshTokenResponse.builder()
+                .accessToken(newAccessToken)
+                .authenticated(true)
+                .build();
+    }
 
     private String getAccessTokenFromRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -205,58 +210,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return signedJWT;
     }
-
-//    String generateToken(User user, Long duration, String type) throws JOSEException {
-//        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
-////        đại diện phần payload
-//        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-//                .subject(user.getEmail())
-//                .issuer("vulinh")
-//                .issueTime(new Date())
-//                .expirationTime(new Date(Instant.now().plus(duration, ChronoUnit.SECONDS).toEpochMilli()))
-//                .jwtID(UUID.randomUUID().toString())
-//                .claim("type", type); // ACCESS vs REFRESH
-//
-//        if ("ACCESS".equals(type)) {
-//            claimsBuilder.claim("role", buildScope(user));
-//        }
-//        // Build claims cuối cùng
-//        JWTClaimsSet jwtClaimSet = claimsBuilder.build();
-//
-////        in ra: {"sub":"king","scope":"EMPLOYEE CUSTOMER ADMIN","iss":"vulinh"
-////                ,"exp":1757582258,"iat":1757578658,"jti":"48a34366-d69d-4e1c-aff3-7f2579ecc165"}
-////        System.out.println(jwtClaimSet);
-//
-////         chuyển từ dạng JWTClaimSet sang JSONObject
-////        Payload là object mà Nimbus dùng để đưa dữ liệu payload vào JWSObject.
-////        jwtClaimSet.toJSONObject() → convert claims thành JSONObject.
-//        Payload payload = new Payload(jwtClaimSet.toJSONObject());
-//
-//
-////        JSON Web Signature Object
-////        Đại diện cho một JWT đã ký (Signed JWT) trong thư viện Nimbus
-//        JWSObject jwsObject = new JWSObject(header, payload);
-////        System.out.println(jwsObject); //in ra: com.nimbusds.jose.JWSObject@1b9bba97
-//
-//        try {
-//            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
-////            System.out.println(jwsObject.serialize());
-//            return jwsObject.serialize();
-//        } catch (JOSEException e) {
-//            log.error("Cannot create token", e);
-//            throw new RuntimeException(e);
-//        }
-//    }
-//
-//    //      buildScope dùng để tạo ra chuỗi “scope” cho JWT dựa trên role của user.
-////      Scope thường được dùng trong JWT để xác định quyền hạn / permission của người dùng.
-//    private String buildScope(User user) {
-//        StringJoiner stringJoiner = new StringJoiner(" ");
-//        if (!CollectionUtils.isEmpty(user.getRole())) {
-//            user.getRole().forEach(role -> stringJoiner.add(role.name())); // dùng .name() chuyển enum -> String
-//        }
-//        return stringJoiner.toString();
-//    }
 
     String generateToken(UserResponse user, Long duration, String type) throws JOSEException {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
@@ -300,7 +253,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     //      buildScope dùng để tạo ra chuỗi “scope” cho JWT dựa trên role của user.
-//      Scope thường được dùng trong JWT để xác định quyền hạn / permission của người dùng.
+    //      Scope thường được dùng trong JWT để xác định quyền hạn / permission của người dùng.
     private String buildScope(UserResponse user) {
         StringJoiner stringJoiner = new StringJoiner(" ");
         if (!CollectionUtils.isEmpty(user.getRole())) {
@@ -308,7 +261,4 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         return stringJoiner.toString();
     }
-
-
-
 }

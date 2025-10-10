@@ -3,13 +3,11 @@ server:
 spring:
   application:
     name: user-service
-
   datasource:
     url: jdbc:mysql://localhost:3308/user_bs?useSSL=false&serverTimezone=UTC
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -18,9 +16,14 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
 
+jwt:
+  signerKey: "+sKONebNUcmUmf+npmjczX4luDnOk4troBnQMmhVxqp64MSKvk5XrVe2Ijr1X+qS"
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
     fetch-registry: true
     register-with-eureka: true
+
+

@@ -9,12 +9,10 @@ import auth_service.dto.response.ApiResponse;
 import auth_service.dto.response.AuthenticationResponse;
 import auth_service.dto.response.IntrospectResponse;
 import auth_service.dto.response.RequireRefreshTokenResponse;
-import auth_service.openfeign.UserClient;
 import auth_service.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -51,18 +49,18 @@ public class AuthenticationController {
         return apiResponse;
     }
 
-//    @PostMapping("/refresh")
-//    ApiResponse<RequireRefreshTokenResponse> refresh(
-//            @RequestBody RefreshRequest request,
-//            HttpServletRequest httpRequest) throws ParseException, JOSEException {
-//
-//        // Truyền cả request để service đọc access token cũ
-//        var result = authenticationService.refreshToken(request,httpRequest);
-//
-//        ApiResponse<RequireRefreshTokenResponse> apiResponse = new ApiResponse<>();
-//        apiResponse.setResult(result);
-//        return apiResponse;
-//    }
+    @PostMapping("/refresh")
+    ApiResponse<RequireRefreshTokenResponse> refresh(
+            @RequestBody RefreshRequest request,
+            HttpServletRequest httpRequest) throws ParseException, JOSEException {
+
+        // Truyền cả request để service đọc access token cũ
+        var result = authenticationService.refreshToken(request,httpRequest);
+
+        ApiResponse<RequireRefreshTokenResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(result);
+        return apiResponse;
+    }
 
     @PostMapping("/logout")
     ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
