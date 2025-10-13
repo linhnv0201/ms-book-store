@@ -147,7 +147,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public RequireRefreshTokenResponse refreshToken(RefreshRequest request, HttpServletRequest httpRequest) throws ParseException, JOSEException {
+    public RequireRefreshTokenResponse refreshToken(
+            RefreshRequest request,
+            HttpServletRequest httpRequest) throws ParseException, JOSEException {
         String refreshToken = request.getToken();
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new AppException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
@@ -155,9 +157,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         // 2. Verify refresh token
         SignedJWT refreshJWT = verifyToken(refreshToken);
-        String email = refreshJWT.getJWTClaimsSet().getSubject();
-//        User user = userRepository.findByEmail(username)
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        String email = refreshJWT.getJWTClaimsSet().getClaim("email").toString();
         ApiResponse<UserResponse> userResponse = userClient.getUserByEmail(email);
         UserResponse user = userResponse.getResult();
         if (user == null) {
@@ -215,7 +215,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         //        đại diện phần payload
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                .subject(user.getEmail())
+                .subject(String.valueOf(user.getId()))
                 .issuer("vulinh")
                 .issueTime(new Date())
                 .expirationTime(new Date(Instant.now().plus(duration, ChronoUnit.SECONDS).toEpochMilli()))
@@ -223,6 +223,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .claim("type", type); // ACCESS vs REFRESH
 
         if ("ACCESS".equals(type)) {
+            claimsBuilder.claim("fullname", user.getFullname());
+            claimsBuilder.claim("email", user.getEmail());
             claimsBuilder.claim("role", buildScope(user));
         }
         // Build claims cuối cùng

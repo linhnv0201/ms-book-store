@@ -61,11 +61,6 @@ public class ProductServiceImpl implements ProductService {
         }
 
         System.out.println("Cache miss. Querying DB for product " + id);
-//        try {
-//            Thread.sleep(3000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
