@@ -1,5 +1,6 @@
 package purchase_order_service.service.impl;
 
+import common_dto.PurchaseOrderCreatedEvent;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import purchase_order_service.exception.ErrorCode;
 import purchase_order_service.mapper.PurchaseOrderMapper;
 import purchase_order_service.repo.PurchaseOrderRepository;
 import purchase_order_service.repo.SupplierRepository;
+import purchase_order_service.service.KafkaProducerService;
 import purchase_order_service.service.PurchasrOrderService;
 
 import java.math.BigDecimal;
@@ -37,6 +39,7 @@ public class PurchaseOrderServiceImpl implements PurchasrOrderService {
     PurchaseOrderRepository purchaseOrderRepository;
     SupplierRepository supplierRepository;
     PurchaseOrderMapper purchaseOrderMapper;
+    KafkaProducerService kafkaProducerService;
 
     @Override
     @Transactional
@@ -71,6 +74,20 @@ public class PurchaseOrderServiceImpl implements PurchasrOrderService {
 
         purchaseOrder.setTotalAmount(total);
         purchaseOrderRepository.save(purchaseOrder);
+
+        PurchaseOrderCreatedEvent event = new PurchaseOrderCreatedEvent();
+        event.setPurchaseOrderId(purchaseOrder.getId());
+        event.setItems(
+                purchaseOrder.getItems().stream().map(item -> {
+                    PurchaseOrderCreatedEvent.PurchaseOrderItemEvent e = new PurchaseOrderCreatedEvent.PurchaseOrderItemEvent();
+                    e.setProductId(item.getProductId());
+                    e.setQuantity(item.getQuantity());
+                    e.setCost(item.getCost());
+                    return e;
+                }).toList()
+        );
+        kafkaProducerService.sendPurchaseOrderCreatedEvent(event);
+
         PurchaseOrderResponse purchaseOrderResponse = new PurchaseOrderResponse();
         purchaseOrderResponse.setCreatedBy(currentUserResponse.getEmail());
         return purchaseOrderMapper.toResponse(purchaseOrder);
