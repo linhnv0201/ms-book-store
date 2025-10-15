@@ -49,6 +49,9 @@ public class Product {
     Integer stock = 0;
 
     @Builder.Default
+    Integer reserved = 0;
+
+    @Builder.Default
     Integer soldQuantity = 0;
 
     @Column(nullable = false, updatable = false)

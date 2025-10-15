@@ -1,6 +1,6 @@
 package purchase_order_service.service.impl;
 
-import common_dto.PurchaseOrderCreatedEvent;
+import common_dto.dto.PurchaseOrderCreatedEvent;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -79,7 +79,8 @@ public class PurchaseOrderServiceImpl implements PurchasrOrderService {
         event.setPurchaseOrderId(purchaseOrder.getId());
         event.setItems(
                 purchaseOrder.getItems().stream().map(item -> {
-                    PurchaseOrderCreatedEvent.PurchaseOrderItemEvent e = new PurchaseOrderCreatedEvent.PurchaseOrderItemEvent();
+                    PurchaseOrderCreatedEvent.PurchaseOrderItemEvent e =
+                            new PurchaseOrderCreatedEvent.PurchaseOrderItemEvent();
                     e.setProductId(item.getProductId());
                     e.setQuantity(item.getQuantity());
                     e.setCost(item.getCost());

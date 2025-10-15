@@ -1,30 +1,27 @@
-package common_dto;
+package common_dto.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PurchaseOrderCreatedEvent {
-    Long purchaseOrderId;
-    List<PurchaseOrderItemEvent> items;
+public class OrderCreatedEvent {
 
-    @Getter
-    @Setter
+    Long orderId;
+    List<OrderItemEvent> items;
+
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class PurchaseOrderItemEvent {
+    public static class OrderItemEvent {
         Long productId;
         Integer quantity;
-        BigDecimal cost;
     }
 }

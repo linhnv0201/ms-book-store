@@ -1,6 +1,6 @@
 package purchase_order_service.service;
 
-import common_dto.PurchaseOrderCreatedEvent;
+import common_dto.dto.PurchaseOrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
