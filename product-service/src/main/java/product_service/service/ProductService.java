@@ -29,4 +29,6 @@ public interface ProductService {
             , BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
     List<Map<String, Object>> getTopSoldProducts(LocalDate startDate, LocalDate endDate);
     List<Map<String, Object>> getPurchaseOrderItemBySupplierId(Long supplierId, LocalDate startDate, LocalDate endDate);
+    void updateStockAfterOrderSuccess(Long productId, int quantity);
+    void updateStockAfterOrderFailed(Long productId, int quantity);
 }

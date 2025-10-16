@@ -43,6 +43,7 @@ public class CustomerPayment {
     @Column(name = "vnp_create_date")
     String vnpCreateDate;  // yyyyMMddHHmmss
 
+    @Enumerated(EnumType.STRING)
     Status status;
 
     public enum PaymentMethod {

@@ -128,10 +128,10 @@ public class PaymentService {
             apiResponse.setResult(new PaymentDTO.VNPayResponse("00", "Success", null));
         } else {
             customerPayment.setStatus(CustomerPayment.Status.FAILED);
-            customerPaymentRepository.save(customerPayment);
             apiResponse.setMessage("Failed");
             apiResponse.setResult(null);
         }
+        customerPaymentRepository.save(customerPayment);
 
         PaymentResponseStatusEvent event = new PaymentResponseStatusEvent();
         event.setOrderId(customerPayment.getOrderId());

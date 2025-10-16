@@ -320,5 +320,25 @@ public class ProductServiceImpl implements ProductService {
         return productJDBCRepository.getPurchaseOrderItemBySupplierId(supplierId, startDate, endDate);
     }
 
+    @Override
+    public void updateStockAfterOrderSuccess(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
+        product.setReserved(product.getReserved() - quantity);
+        product.setSoldQuantity(product.getSoldQuantity() + quantity);
+
+        productRepository.save(product);
+    }
+
+    @Override
+    public void updateStockAfterOrderFailed(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        product.setReserved(product.getReserved() - quantity);
+        product.setSoldQuantity(product.getStock() + quantity);
+
+        productRepository.save(product);
+    }
 }

@@ -1,8 +1,11 @@
 package order_service.service;
 
 import common_dto.dto.OrderStockResponseEvent;
+import common_dto.dto.OrderSuccessOrFailEvent;
 import common_dto.dto.PaymentResponseStatusEvent;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import order_service.enums.Status;
 import order_service.repo.OrderItemRepository;
@@ -15,15 +18,20 @@ import order_service.entity.OrderItem;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderEventListener {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
+    OrderRepository orderRepository;
+    OrderItemRepository orderItemRepository;
+    KafkaProducerService kafkaProducerService;
+
 
     @KafkaListener(topics = "order.stock.response", groupId = "order-service-group")
     @Transactional
@@ -75,10 +83,23 @@ public class OrderEventListener {
 
         if ("SUCCESS".equals(event.getStatus())) {
             order.setStatus(Status.PAID);
+
+
+            OrderSuccessOrFailEvent event1 = new OrderSuccessOrFailEvent();
+            event1.setStatus(event.getStatus());
+
+            List<OrderSuccessOrFailEvent.OrderItemEvent> items = order.getItems().stream()
+                    .map(item -> OrderSuccessOrFailEvent.OrderItemEvent.builder()
+                            .productId(item.getProductId())
+                            .quantity(item.getQuantity())
+                            .build())
+                    .collect(Collectors.toList());
+
+            event1.setItems(items);
+            kafkaProducerService.sendOrderSuccessOrFailEvent(event1);
         } else {
             order.setStatus(Status.PENDING_PAYMENT); // cho retry
         }
-
         orderRepository.save(order);
     }
 }

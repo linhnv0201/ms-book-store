@@ -2,8 +2,11 @@ package product_service.service;
 
 import common_dto.dto.OrderCreatedEvent;
 import common_dto.dto.OrderStockResponseEvent;
+import common_dto.dto.OrderSuccessOrFailEvent;
 import common_dto.dto.PurchaseOrderCreatedEvent;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -18,10 +21,11 @@ import java.util.List;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProductEventListener {
-
-    private final ProductRepository productRepository;
-    private final ProductKafkaProducer productKafkaProducer;
+    ProductRepository productRepository;
+    ProductKafkaProducer productKafkaProducer;
+    ProductService productService;
 
     @KafkaListener(topics = "purchase_order.created", groupId = "product-service-group")
     public void handlePurchaseOrderCreated(PurchaseOrderCreatedEvent event) {
@@ -99,6 +103,35 @@ public class ProductEventListener {
                 .build();
 
         productKafkaProducer.sendOrderStockResponseEvent(responseEvent);
+    }
+
+    @KafkaListener(topics = "order.status", groupId = "product-service-group")
+    public void handleOrderStatus(OrderSuccessOrFailEvent event) {
+        log.info("Received OrderSuccessOrFailEvent: status={}, items={}", event.getStatus(), event.getItems());
+
+
+        if ("SUCCESS".equalsIgnoreCase(event.getStatus())) {
+            for (OrderSuccessOrFailEvent.OrderItemEvent itemEvent : event.getItems()) {
+                Long productId = itemEvent.getProductId();
+                Integer quantity = itemEvent.getQuantity();
+
+                // Giảm số lượng reserved, tăng số lượng sold
+                productService.updateStockAfterOrderSuccess(productId, quantity);
+
+                log.info("Updated productId={} : reserved -{}, sold +{}", productId, quantity, quantity);
+            }
+        } else {
+            for (OrderSuccessOrFailEvent.OrderItemEvent itemEvent : event.getItems()) {
+                Long productId = itemEvent.getProductId();
+                Integer quantity = itemEvent.getQuantity();
+
+                // Giảm số lượng reserved, tăng số lượng sold
+                productService.updateStockAfterOrderFailed(productId, quantity);
+
+                log.info("Updated productId={} : reserved -{}, sold +{}", productId, quantity, quantity);
+            }
+            log.info("Order status is not SUCCESS, no stock changes applied.");
+        }
     }
 }
 
