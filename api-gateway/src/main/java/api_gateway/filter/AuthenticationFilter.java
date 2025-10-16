@@ -29,8 +29,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         HttpMethod method = exchange.getRequest().getMethod();
 
         // Bỏ qua các public endpoint
-        if (path.startsWith("/auth") || (path.startsWith("/products") && HttpMethod.GET.equals(method))) {
-            return chain.filter(exchange);
+        if (path.startsWith("/auth")
+                || (path.startsWith("/products") && HttpMethod.GET.equals(method))
+                || path.startsWith("/payments/vn-pay-callback")) {
+            return chain.filter(exchange); // bypass JWT
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);

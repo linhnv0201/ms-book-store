@@ -1,6 +1,7 @@
 package order_service.service.impl;
 
 import common_dto.dto.OrderCreatedEvent;
+import common_dto.dto.OrderPayRequest;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,7 @@ public class OrderServiceImpl implements OrderService {
         order.setCreatedAt(LocalDateTime.now());
         order.setStatus(Status.STOCK_PENDING);
         order.setCode(generateOrderCode());
+        order.setNote(request.getNote());
 
         for (OrderItemRequest itemReq : request.getItems()) {
             OrderItem orderItem = new OrderItem();
@@ -110,6 +112,21 @@ public class OrderServiceImpl implements OrderService {
                                 .and(createdBetween(startDate, endDate)),
                         pageable)
                 .map(orderMapper::toOrderResponse);
+    }
+
+    @Override
+    public OrderPayRequest getPendingPaymentInfo(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getStatus() != Status.PENDING_PAYMENT) {
+            throw new AppException(ErrorCode.NO_PAYMENT_EXISTED);
+        }
+
+        return OrderPayRequest.builder()
+                .orderId(order.getId())
+                .totalAmount(order.getTotalAmount())
+                .build();
     }
 
     private String generateOrderCode() {

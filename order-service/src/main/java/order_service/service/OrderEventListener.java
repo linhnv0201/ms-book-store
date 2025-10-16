@@ -1,6 +1,7 @@
 package order_service.service;
 
 import common_dto.dto.OrderStockResponseEvent;
+import common_dto.dto.PaymentResponseStatusEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import order_service.enums.Status;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import order_service.entity.Order;
 import order_service.entity.OrderItem;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +37,8 @@ public class OrderEventListener {
         Map<Long, OrderItem> itemMap = new HashMap<>();
         order.getItems().forEach(i -> itemMap.put(i.getProductId(), i));
 
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
         // Cập nhật tất cả item dựa trên event
         for (OrderStockResponseEvent.OrderItem itemEvent : event.getItems()) {
             OrderItem orderItem = itemMap.get(itemEvent.getProductId());
@@ -44,8 +48,13 @@ public class OrderEventListener {
                 orderItem.setCost(itemEvent.getCostAtPurchase());
                 orderItem.setQuantity(itemEvent.getQuantity());
                 orderItemRepository.save(orderItem);
+
+                totalAmount = totalAmount.add(
+                        itemEvent.getPrice().multiply(BigDecimal.valueOf(itemEvent.getQuantity())));
             }
         }
+
+        order.setTotalAmount(totalAmount);
 
         // Cập nhật status order dựa trên event status
         if (event.getStatus() == OrderStockResponseEvent.Status.OK) {
@@ -56,5 +65,20 @@ public class OrderEventListener {
 
         orderRepository.save(order);
         log.info("Updated Order id={} status={} after stock check", order.getId(), order.getStatus());
+    }
+
+    @KafkaListener(topics = "payment.response", groupId = "order-service-group")
+    @Transactional
+    public void handlePaymentCompleted(PaymentResponseStatusEvent event) {
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if ("SUCCESS".equals(event.getStatus())) {
+            order.setStatus(Status.PAID);
+        } else {
+            order.setStatus(Status.PENDING_PAYMENT); // cho retry
+        }
+
+        orderRepository.save(order);
     }
 }

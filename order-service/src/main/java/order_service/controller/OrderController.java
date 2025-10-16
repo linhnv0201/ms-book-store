@@ -1,5 +1,6 @@
 package order_service.controller;
 
+import common_dto.dto.OrderPayRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -67,6 +69,13 @@ public class OrderController {
         LocalDateTime end = (endDate != null) ? endDate.atTime(23, 59, 59) : null;
         ApiResponse<Page<OrderResponse>> apiResponse = new ApiResponse<>();
         apiResponse.setResult(orderService.findAll(status, start, end, PageRequest.of(page, size)));
+        return apiResponse;
+    }
+
+    @GetMapping("/{orderId}/pay")
+    public ApiResponse<OrderPayRequest> payOrder(@PathVariable Long orderId) {
+        ApiResponse<OrderPayRequest> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(orderService.getPendingPaymentInfo(orderId));
         return apiResponse;
     }
 }

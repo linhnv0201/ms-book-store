@@ -18,7 +18,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     boolean existsByCode(String code);
     List<Order> findByCustomerId(Long customerId);
     Optional<Order> findById(Long id);
-    Optional<Order> findByVnpTxnRef(String txnRef);
+//    Optional<Order> findByVnpTxnRef(String txnRef);
     List<Order> findByStatus(Status status);
 
 }
