@@ -120,17 +120,18 @@ public class ProductEventListener {
 
                 log.info("Updated productId={} : reserved -{}, sold +{}", productId, quantity, quantity);
             }
-        } else {
+        }
+
+        if ("EXPIRED".equalsIgnoreCase(event.getStatus())) {
             for (OrderSuccessOrFailEvent.OrderItemEvent itemEvent : event.getItems()) {
                 Long productId = itemEvent.getProductId();
                 Integer quantity = itemEvent.getQuantity();
 
-                // Giảm số lượng reserved, tăng số lượng sold
+                // Giảm số lượng reserved, tăng số lượng stock
                 productService.updateStockAfterOrderFailed(productId, quantity);
 
                 log.info("Updated productId={} : reserved -{}, sold +{}", productId, quantity, quantity);
             }
-            log.info("Order status is not SUCCESS, no stock changes applied.");
         }
     }
 }

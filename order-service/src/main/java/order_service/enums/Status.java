@@ -9,5 +9,6 @@ public enum Status {
     PAID,               // Thanh toán thành công
     PAYMENT_FAILED,     // Thanh toán thất bại
     CANCELLED,          // Đơn bị hủy (do hết hàng, hết hạn thanh toán, hoặc người dùng hủy)
+    EXPIRED,
     SHIPPED             // Đã giao hàng
 }

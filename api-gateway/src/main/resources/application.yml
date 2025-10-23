@@ -38,6 +38,10 @@ spring:
           uri: lb://purchase-order-service
           predicates:
             - Path=/purchase-orders/**
+        - id: cart-route
+          uri: lb://cart-service
+          predicates:
+            - Path=/carts/**
 
 eureka:
   client:

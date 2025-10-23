@@ -19,7 +19,7 @@
         </processorPath>
         <module name="auth-service" />
       </profile>
-      <profile name="Annotation profile for order-service" enabled="true">
+      <profile name="Annotation profile for cart_service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -29,12 +29,13 @@
           <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.5.5.Final/mapstruct-processor-1.5.5.Final.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct/1.5.5.Final/mapstruct-1.5.5.Final.jar" />
         </processorPath>
+        <module name="cart_service" />
+        <module name="payment-service" />
+        <module name="common-dto" />
         <module name="product-service" />
         <module name="order-service" />
         <module name="purchase-order-service" />
         <module name="user-service" />
-        <module name="payment-service" />
-        <module name="common-dto" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -45,6 +46,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="api-gateway" options="-parameters" />
       <module name="auth-service" options="-parameters" />
+      <module name="cart_service" options="-parameters" />
       <module name="common-dto" options="-parameters" />
       <module name="demo" options="-parameters" />
       <module name="order-service" options="-parameters" />

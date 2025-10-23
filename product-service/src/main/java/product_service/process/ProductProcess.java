@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import product_service.dto.response.ProductSummaryResponse;
 import product_service.service.ProductService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -18,7 +19,7 @@ public class ProductProcess implements Runnable {
             System.out.println("[ProductProcess] Running background task for product " + productId);
             result = productService.getRelatedProductSummaryByProductId(productId);
             System.out.println("[ProductProcess] Finished background task for product " + productId + ", cached " +
-                    (result != null ? result.size() : 0) + " related products.");
+                    (result != null ? result.size() : 0) + " related products." +" at " + LocalDateTime.now());
         } catch (Exception e) {
             System.out.println("[ProductProcess] Error: " + e.getMessage());
         }

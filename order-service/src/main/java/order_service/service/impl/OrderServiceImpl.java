@@ -47,45 +47,45 @@ public class OrderServiceImpl implements OrderService {
     CurrentUserProvider currentUserProvider;
     KafkaProducerService kafkaProducerService;
 
-    @Override
-    @Transactional
-    public OrderResponse createOrder(OrderRequest request) {
-        if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new AppException(ErrorCode.EMPTY_ORDER);
+        @Override
+        @Transactional
+        public OrderResponse createOrder(OrderRequest request) {
+            if (request.getItems() == null || request.getItems().isEmpty()) {
+                throw new AppException(ErrorCode.EMPTY_ORDER);
+            }
+
+            CurrentUserResponse currentUser = currentUserProvider.getUserDetailsFromRequest();
+
+            Order order = new Order();
+            order.setCustomerId(currentUser.getUserId());
+            order.setCustomerEmail(currentUser.getEmail());
+            order.setCreatedAt(LocalDateTime.now());
+            order.setStatus(Status.STOCK_PENDING);
+            order.setCode(generateOrderCode());
+            order.setNote(request.getNote());
+
+            for (OrderItemRequest itemReq : request.getItems()) {
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrder(order);
+                orderItem.setProductId(itemReq.getProductId());
+                orderItem.setQuantity(itemReq.getQuantity());
+
+                order.getItems().add(orderItem);
+            }
+            orderRepository.save(order);
+            OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent();
+            orderCreatedEvent.setOrderId(order.getId());
+            orderCreatedEvent.setItems(
+                    order.getItems().stream().map(orderItem -> {
+                        OrderCreatedEvent.OrderItemEvent orderItemEvent = new OrderCreatedEvent.OrderItemEvent();
+                        orderItemEvent.setProductId(orderItem.getProductId());
+                        orderItemEvent.setQuantity(orderItem.getQuantity());
+                        return orderItemEvent;
+                    }).toList()
+            );
+            kafkaProducerService.sendOrderCreatedEvent(orderCreatedEvent);
+            return orderMapper.toOrderResponse(order);
         }
-
-        CurrentUserResponse currentUser = currentUserProvider.getUserDetailsFromRequest();
-
-        Order order = new Order();
-        order.setCustomerId(currentUser.getUserId());
-        order.setCustomerEmail(currentUser.getEmail());
-        order.setCreatedAt(LocalDateTime.now());
-        order.setStatus(Status.STOCK_PENDING);
-        order.setCode(generateOrderCode());
-        order.setNote(request.getNote());
-
-        for (OrderItemRequest itemReq : request.getItems()) {
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProductId(itemReq.getProductId());
-            orderItem.setQuantity(itemReq.getQuantity());
-
-            order.getItems().add(orderItem);
-        }
-        orderRepository.save(order);
-        OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent();
-        orderCreatedEvent.setOrderId(order.getId());
-        orderCreatedEvent.setItems(
-                order.getItems().stream().map(orderItem -> {
-                    OrderCreatedEvent.OrderItemEvent orderItemEvent = new OrderCreatedEvent.OrderItemEvent();
-                    orderItemEvent.setProductId(orderItem.getProductId());
-                    orderItemEvent.setQuantity(orderItem.getQuantity());
-                    return orderItemEvent;
-                }).toList()
-        );
-        kafkaProducerService.sendOrderCreatedEvent(orderCreatedEvent);
-        return orderMapper.toOrderResponse(order);
-    }
 
     @Override
     public List<OrderResponse> getAllOrders() {

@@ -7,12 +7,10 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-//import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
-import product_service.dto.response.CategoryResponse;
 import product_service.dto.response.ProductResponse;
 import product_service.dto.response.ProductSummaryResponse;
 import product_service.entity.Category;
@@ -30,8 +28,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static product_service.specification.ProductSpecification.*;
 
@@ -46,6 +46,7 @@ public class ProductServiceImpl implements ProductService {
     CategoryRepository categoryRepository;
     RedisCacheService redisCacheService;
     ObjectMapper objectMapper;
+    ExecutorService executor = Executors.newFixedThreadPool(10);
 
     @Override
     public ProductResponse getProduct(Long id) {
@@ -70,35 +71,83 @@ public class ProductServiceImpl implements ProductService {
         return response;
     }
 
+    //    @Override
+//    public List<ProductSummaryResponse> getRelatedProductSummaryByProductId(Long id) {
+//        List<Long> relatedIds = getRelatedProductIdsByProductId(id);
+//        List<ProductSummaryResponse> relatedProducts = new ArrayList<>();
+//
+//        for (Long relatedId : relatedIds) {
+//            String summaryKey = "product_summary:" + relatedId;
+//
+//            ProductSummaryResponse cachedSummary =
+//                    (ProductSummaryResponse) redisCacheService.getValue(summaryKey);
+//
+//            if (cachedSummary != null) {
+//                relatedProducts.add(cachedSummary);
+//                continue;
+//            }
+//            try {
+//                Thread.sleep(3000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//
+//            ProductSummaryResponse summary = productRepository.getProductSummaryById(relatedId);
+//            if (summary != null) {
+//                relatedProducts.add(summary);
+//                redisCacheService.setValueWithTimeout(summaryKey, summary, 600, TimeUnit.SECONDS);
+//            }
+//        }
+//        return relatedProducts;
+//    }
+
     @Override
     public List<ProductSummaryResponse> getRelatedProductSummaryByProductId(Long id) {
         List<Long> relatedIds = getRelatedProductIdsByProductId(id);
         List<ProductSummaryResponse> relatedProducts = new ArrayList<>();
 
+        // Danh sách Future (đại diện cho các tác vụ chạy song song)
+        List<Future<ProductSummaryResponse>> futures = new ArrayList<>();
+
         for (Long relatedId : relatedIds) {
-            String summaryKey = "product_summary:" + relatedId;
+            futures.add(executor.submit(() -> {
+                String summaryKey = "product_summary:" + relatedId;
 
-            ProductSummaryResponse cachedSummary =
-                    (ProductSummaryResponse) redisCacheService.getValue(summaryKey);
+                ProductSummaryResponse cachedSummary =
+                        (ProductSummaryResponse) redisCacheService.getValue(summaryKey);
+                if (cachedSummary != null) {
+                    return cachedSummary;
+                }
 
-            if (cachedSummary != null) {
-                relatedProducts.add(cachedSummary);
-                continue;
-            }
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+                ProductSummaryResponse summary = productRepository.getProductSummaryById(relatedId);
+                if (summary != null) {
+                    redisCacheService.setValueWithTimeout(summaryKey, summary, 600, TimeUnit.SECONDS);
+                }
+                return summary;
+            }));
+        }
+
+        // ✅ Chờ tất cả task hoàn thành
+        for (Future<ProductSummaryResponse> future : futures) {
             try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            ProductSummaryResponse summary = productRepository.getProductSummaryById(relatedId);
-            if (summary != null) {
-                relatedProducts.add(summary);
-                redisCacheService.setValueWithTimeout(summaryKey, summary, 600, TimeUnit.SECONDS);
+                ProductSummaryResponse result = future.get(); // blocking cho từng task
+                if (result != null) {
+                    relatedProducts.add(result);
+                }
+            } catch (Exception e) {
+                System.err.println("Error fetching related product: " + e.getMessage());
             }
         }
+
         return relatedProducts;
     }
+
 
     @Override
     public List<Long> getRelatedProductIdsByProductId(Long id) {
@@ -334,10 +383,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void updateStockAfterOrderFailed(Long productId, int quantity) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         product.setReserved(product.getReserved() - quantity);
-        product.setSoldQuantity(product.getStock() + quantity);
+        product.setStock(product.getStock() + quantity);
 
         productRepository.save(product);
     }

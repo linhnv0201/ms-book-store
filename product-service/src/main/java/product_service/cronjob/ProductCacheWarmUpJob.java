@@ -28,9 +28,9 @@ public class ProductCacheWarmUpJob {
 //    Khi thêm @Transactional, session Hibernate sẽ tồn tại trong suốt quá trình thực thi hàm,
 //nên mapper có thể truy cập các field lazy mà không bị lỗi
     @Transactional
-    @Scheduled(fixedRate = 60_000)
+    @Scheduled(fixedRate = 600_000)
     public void warmUpTopSoldProducts(){
-        System.out.println("[ProductCacheWarmUpJob] Running warm-up...");
+        System.out.println("[TopSoldProductCacheWarmUpJob] Running warm-up...");
 
         List<ProductResponse> topSoldProducts = getTop5Products();
         for (ProductResponse product : topSoldProducts) {
@@ -56,4 +56,28 @@ public class ProductCacheWarmUpJob {
         }
         return responses;
     }
+
+//    @Transactional
+//    @Scheduled(fixedRate = 6_000)
+//    public void warmUpAllProducts(){
+//        System.out.println("[ProductCacheWarmUpJob] Running warm-up...");
+//
+//        List<Product> allProducts = productRepository.findAll();
+//        List<ProductResponse> responses = new ArrayList<>();
+//        for (Product product : allProducts) {
+//            responses.add(productMapper.toProductResponse(product));
+//        }
+//        for (ProductResponse product : responses) {
+//            String cacheKey = "product:" + product.getId();
+//
+//            if (!redisCacheService.checkExistsKey(cacheKey)) {
+//                productService.getProduct(product.getId());
+//                System.out.println("   → Cached product id=" + product.getId());
+//            } else {
+//                System.out.println("   → Cache already exists for id=" + product.getId());
+//            }
+//        }
+//
+//        System.out.println("[ProductCacheWarmUpJob] Done ✅");
+//    }
 }

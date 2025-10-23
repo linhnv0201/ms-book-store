@@ -20,13 +20,9 @@ public class CustomerPayment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-//    @ManyToOne
-//    @JoinColumn(name = "order_id")
-//    Order order;
     @Column(nullable = false)
     Long orderId;
 
-//    @Column(nullable = false)
     LocalDateTime paidAt;
 
     @Enumerated(EnumType.STRING)
@@ -41,7 +37,7 @@ public class CustomerPayment {
     String vnpTxnRef;  // để map với callback/querydr
 
     @Column(name = "vnp_create_date")
-    String vnpCreateDate;  // yyyyMMddHHmmss
+    String vnpCreateDate;
 
     @Enumerated(EnumType.STRING)
     Status status;

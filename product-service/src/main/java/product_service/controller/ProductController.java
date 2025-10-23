@@ -90,10 +90,9 @@ public class ProductController {
     @GetMapping("/{id}")
     public ApiResponse<ProductResponse> getProduct(@PathVariable Long id) {
         ApiResponse<ProductResponse> apiResponse = new ApiResponse<>();
-        taskManager.execute(productService, id);
-//        productService.getRelatedProductSummaryByProductId(id);
         apiResponse.setMessage("Successfully retrieved product");
         apiResponse.setResult(productService.getProduct(id));
+        taskManager.execute(productService, id);
         return apiResponse;
     }
 
