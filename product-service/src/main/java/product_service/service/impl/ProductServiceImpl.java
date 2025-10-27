@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
 import product_service.dto.response.ProductResponse;
+import product_service.dto.response.ProductResponseForAdmin;
 import product_service.dto.response.ProductSummaryResponse;
 import product_service.entity.Category;
 import product_service.entity.Product;
@@ -61,45 +62,22 @@ public class ProductServiceImpl implements ProductService {
             return response;
         }
 
-        System.out.println("Cache miss. Querying DB for product " + id);
+//        System.out.println("Cache miss. Querying DB for product " + id);
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-        ProductResponse response = filterProductForNonAdmin(productMapper.toProductResponse(product));
-        redisCacheService.setValueWithTimeout(key, response, 600, TimeUnit.SECONDS);
-
+        ProductResponse response = productMapper.toProductResponse(product);
+        redisCacheService.setValueWithTimeout(key, response, 20, TimeUnit.SECONDS);
         return response;
     }
 
-    //    @Override
-//    public List<ProductSummaryResponse> getRelatedProductSummaryByProductId(Long id) {
-//        List<Long> relatedIds = getRelatedProductIdsByProductId(id);
-//        List<ProductSummaryResponse> relatedProducts = new ArrayList<>();
-//
-//        for (Long relatedId : relatedIds) {
-//            String summaryKey = "product_summary:" + relatedId;
-//
-//            ProductSummaryResponse cachedSummary =
-//                    (ProductSummaryResponse) redisCacheService.getValue(summaryKey);
-//
-//            if (cachedSummary != null) {
-//                relatedProducts.add(cachedSummary);
-//                continue;
-//            }
-//            try {
-//                Thread.sleep(3000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//
-//            ProductSummaryResponse summary = productRepository.getProductSummaryById(relatedId);
-//            if (summary != null) {
-//                relatedProducts.add(summary);
-//                redisCacheService.setValueWithTimeout(summaryKey, summary, 600, TimeUnit.SECONDS);
-//            }
-//        }
-//        return relatedProducts;
-//    }
+    @Override
+    public ProductResponseForAdmin getProductByAdmin(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+        ProductResponseForAdmin response = productMapper.toProductResponseForAdmin(product);
+        return response;
+    }
 
     @Override
     public List<ProductSummaryResponse> getRelatedProductSummaryByProductId(Long id) {
@@ -239,8 +217,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable)
-                .map(productMapper::toProductResponse)
-                .map(this::filterProductForNonAdmin);
+                .map(productMapper::toProductResponse);
     }
 
     @Override
@@ -248,7 +225,14 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getAllProductsByCategory(Long categoryId) {
         return productRepository.GetProductsByCategoryId(categoryId).stream()
                 .map(productMapper::toProductResponse)
-                .map(this::filterProductForNonAdmin)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)  // ← cần để giữ connection mở, dùng với khai báo StoreProcedure
+    public List<ProductResponseForAdmin> getAllProductsByCategoryByAdmin(Long categoryId) {
+        return productRepository.GetProductsByCategoryId(categoryId).stream()
+                .map(productMapper::toProductResponseForAdmin)
                 .toList();
     }
 
@@ -322,8 +306,6 @@ public class ProductServiceImpl implements ProductService {
         return new ArrayList<>(productMap.values());
     }
 
-
-    // test Specification + paging
     @Override
     public Page<ProductResponse> fullSearch(String name, String author, String language, List<Long> categoriesId
             , BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
@@ -335,27 +317,6 @@ public class ProductServiceImpl implements ProductService {
                         .and(hasPriceBetween(minPrice, maxPrice)),
                 pageable
         ).map(productMapper::toProductResponse);
-    }
-
-
-    //    private boolean isAdmin() {
-//        var auth = SecurityContextHolder.getContext().getAuthentication();
-//        return auth != null
-//                && auth.isAuthenticated()
-//                && !"anonymousUser".equals(auth.getName())
-//                && auth.getAuthorities().stream()
-//                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-//    }
-//
-    private boolean isAdmin() {
-        return true;
-    }
-
-    private ProductResponse filterProductForNonAdmin(ProductResponse productResponse) {
-        if (!isAdmin()) {
-            productResponse.setCost(null);
-        }
-        return productResponse;
     }
 
 

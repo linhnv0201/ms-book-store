@@ -6,6 +6,7 @@ import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
 import product_service.dto.response.CategoryResponse;
 import product_service.dto.response.ProductResponse;
+import product_service.dto.response.ProductResponseForAdmin;
 import product_service.entity.Product;
 
 import java.util.Collections;
@@ -22,10 +23,10 @@ public interface ProductMapper {
     // dùng default (hoặc static) cho phép viết logic mapping tùy chỉnh ngay trong interface Mapper
     // MapStruct vẫn tự generate các method abstract khác
     // Không cần tạo class Mapper riêng, vẫn dùng @Mapper(componentModel="spring") → Spring inject trực tiếp
-    default ProductResponse toProductResponse(Product product) {
+    default ProductResponseForAdmin toProductResponseForAdmin(Product product) {
         if (product == null) return null;
 
-        ProductResponse response = new ProductResponse();
+        ProductResponseForAdmin response = new ProductResponseForAdmin();
         response.setId(product.getId());
         response.setName(product.getName());
         response.setAuthor(product.getAuthor());
@@ -37,6 +38,33 @@ public interface ProductMapper {
         response.setSoldQuantity(product.getSoldQuantity());
         response.setCreatedAt(product.getCreatedAt());
         response.setIsVisible(product.getIsVisible());
+
+        // Map categories -> CategoryResponse
+        if (product.getCategories() != null) {
+            Set<CategoryResponse> categoryResponses = product.getCategories()
+                    .stream()
+                    .map(c -> new CategoryResponse(c.getId(), c.getName()))
+                    .collect(Collectors.toSet());
+            response.setCategories(categoryResponses);
+        } else {
+            response.setCategories(Collections.emptySet());
+        }
+
+        return response;
+    }
+
+    default ProductResponse toProductResponse(Product product) {
+        if (product == null) return null;
+
+        ProductResponse response = new ProductResponse();
+        response.setId(product.getId());
+        response.setName(product.getName());
+        response.setAuthor(product.getAuthor());
+        response.setLanguage(product.getLanguage());
+        response.setDescription(product.getDescription());
+        response.setPrice(product.getPrice());
+        response.setStock(product.getStock());
+        response.setSoldQuantity(product.getSoldQuantity());
 
         // Map categories -> CategoryResponse
         if (product.getCategories() != null) {

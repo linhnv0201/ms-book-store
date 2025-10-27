@@ -15,7 +15,7 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL) // bỏ các field null khi serialize
-public class ProductResponse {
+public class ProductResponseForAdmin {
     Long id;
     String name;
     String author;
@@ -23,6 +23,9 @@ public class ProductResponse {
     Set<CategoryResponse> categories;
     String description;
     BigDecimal price;
+    BigDecimal cost;
     Integer stock;
     Integer soldQuantity;
+    LocalDateTime createdAt;
+    Boolean isVisible;
 }

@@ -4,19 +4,20 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 //import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import product_service.config.RedisConfig;
 import product_service.dto.request.ProductCreationRequest;
 import product_service.dto.request.ProductUpdateRequest;
 import product_service.dto.response.ApiResponse;
 import product_service.dto.response.ProductResponse;
+import product_service.dto.response.ProductResponseForAdmin;
 import product_service.dto.response.ProductSummaryResponse;
 import product_service.process.TaskManager;
 import product_service.service.ProductService;
@@ -38,7 +39,7 @@ public class ProductController {
 
     @PostMapping
 //    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ProductResponse> createProduct(@RequestBody ProductCreationRequest request) {
         ApiResponse<ProductResponse> apiResponse = new ApiResponse<>();
         apiResponse.setMessage("Successfully created product");
@@ -47,7 +48,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ProductResponse> updateProduct(@PathVariable Long id, @RequestBody ProductUpdateRequest request) {
         ApiResponse<ProductResponse> apiResponse = new ApiResponse<>();
         apiResponse.setMessage("Successfully updated product");
@@ -56,7 +57,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> deleteProduct(@PathVariable Long id) {
         ApiResponse<Void> apiResponse = new ApiResponse<>();
         apiResponse.setMessage("Successfully deleted product");
@@ -96,6 +97,15 @@ public class ProductController {
         return apiResponse;
     }
 
+    @GetMapping("/{id}/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<ProductResponseForAdmin> getProductByAdmin(@PathVariable Long id) {
+        ApiResponse<ProductResponseForAdmin> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("Successfully retrieved product");
+        apiResponse.setResult(productService.getProductByAdmin(id));
+        return apiResponse;
+    }
+
     @GetMapping("/{id}/relatedProduct")
     public ApiResponse<List<ProductSummaryResponse>> getRelatedProductsSummary(@PathVariable Long id) {
         ApiResponse<List<ProductSummaryResponse>> apiResponse = new ApiResponse<>();
@@ -116,8 +126,16 @@ public class ProductController {
     @GetMapping("/category/{id}")
     public ApiResponse<List<ProductResponse>> getProductsByCategory(@PathVariable Long id) {
         ApiResponse<List<ProductResponse>> apiResponse = new ApiResponse<>();
-        apiResponse.setMessage("Successfully retrieved products");
+        apiResponse.setMessage("Successfully retrieved products for cateId " + id);
         apiResponse.setResult(productService.getAllProductsByCategory(id));
+        return apiResponse;
+    }
+
+    @GetMapping("/category/{id}/admin")
+    public ApiResponse<List<ProductResponseForAdmin>> getProductsByCategoryByAdmin(@PathVariable Long id) {
+        ApiResponse<List<ProductResponseForAdmin>> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("Successfully retrieved products for cateId " + id);
+        apiResponse.setResult(productService.getAllProductsByCategoryByAdmin(id));
         return apiResponse;
     }
 
