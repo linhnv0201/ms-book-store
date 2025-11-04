@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
-            "/auth/login", "/auth/introspect", "/auth/register", "/auth/logout", "/auth/refresh",
+//            "/auth/login", "/auth/introspect", "/auth/register", "/auth/logout", "/auth/refresh",
+            "/auth/login", "/auth/introspect", "/auth/register", "/auth/logout"
     };
 
     @Autowired

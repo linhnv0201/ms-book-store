@@ -11,6 +11,7 @@ import auth_service.dto.response.RequireRefreshTokenResponse;
 import auth_service.entity.InvalidatedToken;
 import auth_service.exception.AppException;
 import auth_service.exception.ErrorCode;
+import auth_service.openfeign.Role;
 import auth_service.openfeign.UserClient;
 import auth_service.openfeign.UserResponse;
 import auth_service.repo.InvalidatedTokenRepository;
@@ -35,9 +36,7 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -84,19 +83,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             HttpServletResponse response) {
 
         // 🚀 Gọi UserService qua FeignClient thay vì query DB trực tiếp
-        ApiResponse<UserResponse> apiResponse = userClient.getUserByEmail(request.getEmail());
+        ApiResponse<UserResponse> apiResponse = userClient.getUserByEmailPassword(request.getEmail(), request.getPassword());
         UserResponse user = apiResponse.getResult();
         if (user == null) {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
-
-        //BCrypt khi mã hóa mật khẩu sẽ thực hiện nhiều vòng (rounds) hashing.
-        //Số vòng = 2^strength.
-        //Với strength = 10 → BCrypt chạy 2^10 = 1024 vòng tính toán để tạo ra hash.
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-
-        if (!authenticated) throw new AppException(ErrorCode.WRONG_PASSWORD);
 
         String accessToken;
         String refreshToken;
@@ -157,12 +148,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         // 2. Verify refresh token
         SignedJWT refreshJWT = verifyToken(refreshToken);
-        String email = refreshJWT.getJWTClaimsSet().getClaim("email").toString();
-        ApiResponse<UserResponse> userResponse = userClient.getUserByEmail(email);
-        UserResponse user = userResponse.getResult();
-        if (user == null) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        UserResponse user = new UserResponse();
+        user.setEmail(refreshJWT.getJWTClaimsSet().getClaim("email").toString());
+        user.setId(Long.parseLong(refreshJWT.getJWTClaimsSet().getClaim("sub").toString()));
+        user.setFullname(refreshJWT.getJWTClaimsSet().getClaim("fullname").toString());
+        Object rolesClaim = refreshJWT.getJWTClaimsSet().getClaim("role");
+        Set<Role> roles = new HashSet<>();
+
+        if (rolesClaim instanceof String roleStr) {
+            roles.add(Role.valueOf(roleStr));
+        } else if (rolesClaim instanceof List<?> list) {
+            for (Object r : list) {
+                roles.add(Role.valueOf(r.toString()));
+            }
         }
+
+        user.setRole(roles);
+
+
 
         // 3. Invalidate old access token (lấy từ header Authorization)
         String oldAccessToken = getAccessTokenFromRequest(httpRequest);

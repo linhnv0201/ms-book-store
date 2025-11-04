@@ -33,6 +33,9 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
     producer:
+#      retries: 3                 # số lần retry tối đa
+#      retry.backoff.ms: 100      # thời gian chờ giữa các lần retry
+#      enable.idempotence: true   # tránh duplicate khi retry
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: all

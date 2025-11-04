@@ -6,6 +6,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import user_service.user.dto.UserInfoUpdateRequest;
 import user_service.user.dto.UserResponse;
+import user_service.user.dto.UserResponseForAuthentication;
 import user_service.user.dto.UserUpdateRequest;
 import user_service.user.entity.User;
 

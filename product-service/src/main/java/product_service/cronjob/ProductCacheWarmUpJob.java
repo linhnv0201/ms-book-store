@@ -28,7 +28,7 @@ public class ProductCacheWarmUpJob {
 //    Khi thêm @Transactional, session Hibernate sẽ tồn tại trong suốt quá trình thực thi hàm,
 //nên mapper có thể truy cập các field lazy mà không bị lỗi
     @Transactional
-    @Scheduled(fixedRate = 600_000)
+    @Scheduled(fixedRate = 6_000)
     public void warmUpTopSoldProducts(){
         System.out.println("[TopSoldProductCacheWarmUpJob] Running warm-up...");
 

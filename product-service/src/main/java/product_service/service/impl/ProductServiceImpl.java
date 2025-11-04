@@ -97,11 +97,11 @@ public class ProductServiceImpl implements ProductService {
                     return cachedSummary;
                 }
 
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+//                try {
+//                    Thread.sleep(10000);
+//                } catch (InterruptedException e) {
+//                    Thread.currentThread().interrupt();
+//                }
 
                 ProductSummaryResponse summary = productRepository.getProductSummaryById(relatedId);
                 if (summary != null) {

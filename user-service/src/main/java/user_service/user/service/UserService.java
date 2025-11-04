@@ -20,5 +20,5 @@ public interface UserService {
     UserResponse registerCustomer(UserCreationRequest request);
     UserResponse getMyInfoJDBC();
     Page<UserResponse> searchUsers(String email, String fullname, String role, Pageable pageable);
-    UserResponse getUserByEmail(String email);
+    UserResponseForAuthentication getUserByEmailPassword(String email, String password);
 }

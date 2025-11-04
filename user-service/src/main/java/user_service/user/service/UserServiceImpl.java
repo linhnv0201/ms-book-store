@@ -58,10 +58,23 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getUserByEmail(String email) {
+    public UserResponseForAuthentication getUserByEmailPassword(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-        return userMapper.toUserResponse(user);
+
+        //BCrypt khi mã hóa mật khẩu sẽ thực hiện nhiều vòng (rounds) hashing.
+        //Số vòng = 2^strength.
+        //Với strength = 10 → BCrypt chạy 2^10 = 1024 vòng tính toán để tạo ra hash.
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        boolean authenticated = passwordEncoder.matches(password, user.getPassword());
+
+        if (!authenticated) throw new AppException(ErrorCode.WRONG_PASSWORD);
+        UserResponseForAuthentication userResponse = new UserResponseForAuthentication();
+        userResponse.setEmail(user.getEmail());
+        userResponse.setRole(user.getRole());
+        userResponse.setId(user.getId());
+        userResponse.setFullname(user.getFullname());
+        return userResponse;
     }
 
     @Override

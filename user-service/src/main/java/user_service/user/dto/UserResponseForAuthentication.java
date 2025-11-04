@@ -1,7 +1,8 @@
-package auth_service.openfeign;
+package user_service.user.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import user_service.user.enums.Role;
 
 import java.util.Set;
 
@@ -11,7 +12,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
+public class UserResponseForAuthentication {
     Long id;
     String email;
     String fullname;

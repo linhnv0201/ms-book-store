@@ -65,19 +65,12 @@ public class ProductController {
         return apiResponse;
     }
 
-    //    @GetMapping
-//    public ApiResponse<List<ProductResponse>> getAllProducts() {
-//        ApiResponse<List<ProductResponse>> apiResponse = new ApiResponse<>();
-//        apiResponse.setMessage("Successfully retrieved products");
-//        apiResponse.setResult(productService.getAllProducts());
-//        return apiResponse;
-//    }
     @GetMapping
     public ApiResponse<Page<ProductResponse>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
         // Lấy page từ repository qua service
         Page<ProductResponse> products = productService.getAllProducts(pageable);
